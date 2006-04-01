@@ -1,3 +1,12 @@
+			    KFS-enabled Additional Directions
+
+When running "make <target>" you must define the environment variables
+KUDOSINC and KUDOSLIB. To build using a kudos checkout at K these would
+be (in bash) KUDOSINC=K/kfs KUDOSLIB=K/obj/kernel/lib.
+To run imapd/imapd, libopgroup.so must be in your library path.
+For bash, LD_LIBRARY_PATH=K/obj/kernel/lib.
+
+			
 			   IMAP Toolkit Environment
 			      14 September 2004
 				 Mark Crispin

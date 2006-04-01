@@ -29,6 +29,8 @@ extern int errno;		/* just in case */
 #include "c-client.h"
 #include "newsrc.h"
 #include <sys/stat.h>
+#include <opgroup.h>
+#include <assert.h>
 
 
 #define CRLF PSOUT ("\015\012")	/* primary output terpri */
@@ -336,6 +338,8 @@ int main (int argc,char *argv[])
     break;
   }
 
+  int r;
+  opgroup_id_t prev_opgroup = -1;
   while (state != LOGOUT) {	/* command processing loop */
     slurp (cmdbuf,CMDLEN);	/* slurp command */
 				/* no more last error or literal */
@@ -424,7 +428,20 @@ int main (int argc,char *argv[])
       }
 #endif
 
-      else switch (state) {	/* dispatch depending upon state */
+      else {
+      opgroup_id_t cur_opgroup = opgroup_create(0);
+      assert(cur_opgroup >= 0);
+      if (prev_opgroup != -1)
+      {
+        r = opgroup_add_depend(cur_opgroup, prev_opgroup);
+        assert(r >= 0);
+        r = opgroup_abandon(prev_opgroup);
+        assert(r >= 0);
+      }
+      prev_opgroup = cur_opgroup;
+      r = opgroup_engage(cur_opgroup);
+      assert(r >= 0);
+      switch (state) {	/* dispatch depending upon state */
       case LOGIN:		/* waiting to get logged in */
 				/* new style authentication */
 	if (!strcmp (cmd,"AUTHENTICATE")) {
@@ -1182,6 +1199,11 @@ int main (int argc,char *argv[])
         response = "%.80s BAD Unknown state for %.80s command\015\012";
 	break;
       }
+      r = opgroup_disengage(cur_opgroup);
+      assert(r >= 0);
+      r = opgroup_release(cur_opgroup);
+      assert(r >= 0);
+      }
       if (litplus) {		/* any unread litplus? */
 	alarm ((state != LOGIN) ? TIMEOUT : LOGINTIMEOUT);
 	clearerr (stdin);	/* clear stdin errors */
@@ -1235,6 +1257,11 @@ int main (int argc,char *argv[])
 	state = LOGOUT;		/* sayonara */
       }
     }
+  }
+  if (prev_opgroup != -1)
+  {
+    r = opgroup_abandon(prev_opgroup);
+    assert(r >= 0);
   }
   syslog (LOG_INFO,"Logout user=%.80s host=%.80s",user ? (char *) user : "???",
 	  tcp_clienthost ());
