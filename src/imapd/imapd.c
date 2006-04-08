@@ -439,6 +439,8 @@ int main (int argc,char *argv[])
         assert(r >= 0);
       }
       prev_opgroup = cur_opgroup;
+      r = opgroup_release(cur_opgroup);
+      assert(r >= 0);
       r = opgroup_engage(cur_opgroup);
       assert(r >= 0);
       switch (state) {	/* dispatch depending upon state */
@@ -1200,8 +1202,6 @@ int main (int argc,char *argv[])
 	break;
       }
       r = opgroup_disengage(cur_opgroup);
-      assert(r >= 0);
-      r = opgroup_release(cur_opgroup);
       assert(r >= 0);
       }
       if (litplus) {		/* any unread litplus? */
