@@ -429,6 +429,7 @@ int main (int argc,char *argv[])
 #endif
 
       else {
+      extern opgroup_id_t unix_opgroup;
       opgroup_id_t cur_opgroup = opgroup_create(0);
       assert(cur_opgroup >= 0);
       if (prev_opgroup != -1)
@@ -439,6 +440,8 @@ int main (int argc,char *argv[])
         assert(r >= 0);
       }
       prev_opgroup = cur_opgroup;
+      assert(unix_opgroup < 0);
+      unix_opgroup = cur_opgroup;
       r = opgroup_release(cur_opgroup);
       assert(r >= 0);
       r = opgroup_engage(cur_opgroup);
@@ -1203,6 +1206,7 @@ int main (int argc,char *argv[])
       }
       r = opgroup_disengage(cur_opgroup);
       assert(r >= 0);
+      unix_opgroup = -1;
       }
       if (litplus) {		/* any unread litplus? */
 	alarm ((state != LOGIN) ? TIMEOUT : LOGINTIMEOUT);

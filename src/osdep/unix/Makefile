@@ -455,8 +455,8 @@ lnp:	# Linux Pluggable Authentication modules
 	 SPOOLDIR=/var/spool \
 	 ACTIVEFILE=/var/lib/news/active \
 	 RSHPATH=/usr/bin/rsh \
-	 BASECFLAGS="-g -fno-omit-frame-pointer $(GCCOPTLEVEL)" \
-	 BASELDFLAGS="$(PAMLDFLAGS)"
+	 BASECFLAGS="-g -fno-omit-frame-pointer $(GCCOPTLEVEL) -I$(KUDOSINC)" \
+	 BASELDFLAGS="$(PAMLDFLAGS) -L$(KUDOSLIB) -lopgroup"
 
 lnx:	# Linux non-shadow passwords
 	@echo You are building for traditional Linux *without* shadow

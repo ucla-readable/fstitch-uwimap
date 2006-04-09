@@ -45,7 +45,18 @@ extern int errno;		/* just in case */
 #include "fdstring.h"
 #include "misc.h"
 #include "dummy.h"
+#include <opgroup.h>
+#include <assert.h>
 
+/* For the user of this driver to specify external ordering requirements;
+ * internal syncs will be done on this opgroup.
+ * Note: assumes <=1 UNIXLOCAL instance (true for imapd.c). There should be
+ * a better api for this.
+ */
+
+opgroup_id_t unix_opgroup = -1;
+
+
 /* UNIX I/O stream local data */
 
 typedef struct unix_local {
@@ -481,7 +492,6 @@ MAILSTREAM *unix_open (MAILSTREAM *stream)
 	write (fd,tmp,(i = strlen (tmp))+1);
       }
       ftruncate (fd,i);		/* make sure tied off */
-      fsync (fd);		/* make sure it's available */
       retry = 0;		/* no more need to try */
     }
   }
@@ -890,7 +900,7 @@ long unix_copy (MAILSTREAM *stream,char *sequence,char *mailbox,long options)
 	}
       }
     }
-  if (!ret || fsync (fd)) {	/* force out the update */
+  if (!ret) {
     sprintf (LOCAL->buf,"Message copy failed: %s",strerror (errno));
     ftruncate (fd,sbuf.st_size);
     ret = NIL;
@@ -909,6 +919,10 @@ long unix_copy (MAILSTREAM *stream,char *sequence,char *mailbox,long options)
   else if (options & CP_MOVE) for (i = 1; i <= stream->nmsgs; i++)
     if ((elt = mail_elt (stream,i))->sequence)
       elt->deleted = elt->private.dirty = LOCAL->dirty = T;
+				/* mark dirty so that CHECK syncs the copy */
+  else for (i = 1; i <= stream->nmsgs; i++)
+    if ((elt = mail_elt (stream,i))->sequence)
+      LOCAL->dirty = T;
   return ret;
 }
 
@@ -922,6 +936,8 @@ long unix_copy (MAILSTREAM *stream,char *sequence,char *mailbox,long options)
 
 #define BUFLEN 8*MAILTMPLEN
 
+// TODO: can we safely disengage the current opgroup for this function
+// so that appends after a copy do not sync the copy? (Is it worth doing?)
 long unix_append (MAILSTREAM *stream,char *mailbox,append_t af,void *data)
 {
   struct stat sbuf;
@@ -1982,7 +1998,8 @@ long unix_rewrite (MAILSTREAM *stream,unsigned long *nexp,DOTLOCK *lock)
     fs_give ((void **) &f.buf);	/* free buffer */
 				/* make sure tied off */
     ftruncate (LOCAL->fd,LOCAL->filesize = size);
-    fsync (LOCAL->fd);		/* make sure the updates take */
+    int r = opgroup_sync(unix_opgroup); /* make sure the updates take */
+    assert(r >= 0);
     if (size && (flag < 0)) fatal ("lost UID base information");
     LOCAL->dirty = NIL;		/* no longer dirty */
   				/* notify upper level of new mailbox sizes */
@@ -2021,12 +2038,11 @@ long unix_extend (MAILSTREAM *stream,unsigned long size)
     memset (LOCAL->buf,'\0',i);	/* get a block of nulls */
     while (T) {			/* until write successful or punt */
       lseek (LOCAL->fd,LOCAL->filesize,L_SET);
-      if ((write (LOCAL->fd,LOCAL->buf,i) >= 0) && !fsync (LOCAL->fd)) break;
+      if (write (LOCAL->fd,LOCAL->buf,i) >= 0) break;
       else {
 	long e = errno;		/* note error before doing ftruncate */
 	ftruncate (LOCAL->fd,LOCAL->filesize);
 	if (MM_DISKERROR (stream,e,NIL)) {
-	  fsync (LOCAL->fd);	/* user chose to punt */
 	  sprintf (LOCAL->buf,"Unable to extend mailbox: %s",strerror (e));
 	  if (!stream->silent) MM_LOG (LOCAL->buf,ERROR);
 	  return NIL;
