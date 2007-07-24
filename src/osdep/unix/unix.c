@@ -1177,7 +1177,11 @@ int unix_lock (char *file,int flags,int mode,DOTLOCK *lock,int op)
 {
   int fd;
   blocknotify_t bn = (blocknotify_t) mail_parameters (NIL,GET_BLOCKNOTIFY,NIL);
+  int r;
   (*bn) (BLOCK_FILELOCK,NIL);
+				/* no need to order locks */
+  r = opgroup_disengage(unix_opgroup);
+  assert(r >= 0);
 				/* try locking the easy way */
   if (dotlock_lock (file,lock,-1)) {
 				/* got dotlock file, easy open */
@@ -1195,6 +1199,9 @@ int unix_lock (char *file,int flags,int mode,DOTLOCK *lock,int op)
     else flock (fd,op);		/* paranoid way failed, just flock() it */
   }
   (*bn) (BLOCK_NONE,NIL);
+				/* no need to order locks */
+  r = opgroup_engage(unix_opgroup);
+  assert(r >= 0);
   return fd;
 }
 
@@ -1207,6 +1214,10 @@ int unix_lock (char *file,int flags,int mode,DOTLOCK *lock,int op)
 
 void unix_unlock (int fd,MAILSTREAM *stream,DOTLOCK *lock)
 {
+  int r;
+				/* no need to order locks */
+  r = opgroup_disengage(unix_opgroup);
+  assert(r >= 0);
   if (stream) {			/* need to muck with times? */
     struct stat sbuf;
     time_t tp[2];
@@ -1238,6 +1249,9 @@ void unix_unlock (int fd,MAILSTREAM *stream,DOTLOCK *lock)
   flock (fd,LOCK_UN);		/* release flock'ers */
   if (!stream) close (fd);	/* close the file if no stream */
   dotlock_unlock (lock);	/* flush the lock file if any */
+				/* no need to order locks */
+  r = opgroup_engage(unix_opgroup);
+  assert(r >= 0);
 }
 
 /* UNIX mail parse and lock mailbox
