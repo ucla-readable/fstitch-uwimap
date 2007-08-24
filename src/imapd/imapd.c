@@ -29,7 +29,7 @@ extern int errno;		/* just in case */
 #include "c-client.h"
 #include "newsrc.h"
 #include <sys/stat.h>
-#include <opgroup.h>
+#include <patchgroup.h>
 #include <assert.h>
 
 
@@ -339,7 +339,7 @@ int main (int argc,char *argv[])
   }
 
   int r;
-  opgroup_id_t prev_opgroup = -1;
+  patchgroup_id_t prev_patchgroup = -1;
   while (state != LOGOUT) {	/* command processing loop */
     slurp (cmdbuf,CMDLEN);	/* slurp command */
 				/* no more last error or literal */
@@ -429,22 +429,22 @@ int main (int argc,char *argv[])
 #endif
 
       else {
-      extern opgroup_id_t unix_opgroup;
-      opgroup_id_t cur_opgroup = opgroup_create(0);
-      assert(cur_opgroup >= 0);
-      if (prev_opgroup != -1)
+      extern patchgroup_id_t unix_patchgroup;
+      patchgroup_id_t cur_patchgroup = patchgroup_create(0);
+      assert(cur_patchgroup >= 0);
+      if (prev_patchgroup != -1)
       {
-        r = opgroup_add_depend(cur_opgroup, prev_opgroup);
+        r = patchgroup_add_depend(cur_patchgroup, prev_patchgroup);
         assert(r >= 0);
-        r = opgroup_abandon(prev_opgroup);
+        r = patchgroup_abandon(prev_patchgroup);
         assert(r >= 0);
       }
-      prev_opgroup = cur_opgroup;
-      assert(unix_opgroup < 0);
-      unix_opgroup = cur_opgroup;
-      r = opgroup_release(cur_opgroup);
+      prev_patchgroup = cur_patchgroup;
+      assert(unix_patchgroup < 0);
+      unix_patchgroup = cur_patchgroup;
+      r = patchgroup_release(cur_patchgroup);
       assert(r >= 0);
-      r = opgroup_engage(cur_opgroup);
+      r = patchgroup_engage(cur_patchgroup);
       assert(r >= 0);
       switch (state) {	/* dispatch depending upon state */
       case LOGIN:		/* waiting to get logged in */
@@ -1204,9 +1204,9 @@ int main (int argc,char *argv[])
         response = "%.80s BAD Unknown state for %.80s command\015\012";
 	break;
       }
-      r = opgroup_disengage(cur_opgroup);
+      r = patchgroup_disengage(cur_patchgroup);
       assert(r >= 0);
-      unix_opgroup = -1;
+      unix_patchgroup = -1;
       }
       if (litplus) {		/* any unread litplus? */
 	alarm ((state != LOGIN) ? TIMEOUT : LOGINTIMEOUT);
@@ -1262,9 +1262,9 @@ int main (int argc,char *argv[])
       }
     }
   }
-  if (prev_opgroup != -1)
+  if (prev_patchgroup != -1)
   {
-    r = opgroup_abandon(prev_opgroup);
+    r = patchgroup_abandon(prev_patchgroup);
     assert(r >= 0);
   }
   syslog (LOG_INFO,"Logout user=%.80s host=%.80s",user ? (char *) user : "???",

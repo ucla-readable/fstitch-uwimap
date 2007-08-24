@@ -45,16 +45,16 @@ extern int errno;		/* just in case */
 #include "fdstring.h"
 #include "misc.h"
 #include "dummy.h"
-#include <opgroup.h>
+#include <patchgroup.h>
 #include <assert.h>
 
 /* For the user of this driver to specify external ordering requirements;
- * internal syncs will be done on this opgroup.
+ * internal syncs will be done on this patchgroup.
  * Note: assumes <=1 UNIXLOCAL instance (true for imapd.c). There should be
  * a better api for this.
  */
 
-opgroup_id_t unix_opgroup = -1;
+patchgroup_id_t unix_patchgroup = -1;
 
 
 /* UNIX I/O stream local data */
@@ -936,7 +936,7 @@ long unix_copy (MAILSTREAM *stream,char *sequence,char *mailbox,long options)
 
 #define BUFLEN 8*MAILTMPLEN
 
-// TODO: can we safely disengage the current opgroup for this function
+// TODO: can we safely disengage the current patchgroup for this function
 // so that appends after a copy do not sync the copy? (Is it worth doing?)
 long unix_append (MAILSTREAM *stream,char *mailbox,append_t af,void *data)
 {
@@ -1180,7 +1180,7 @@ int unix_lock (char *file,int flags,int mode,DOTLOCK *lock,int op)
   int r;
   (*bn) (BLOCK_FILELOCK,NIL);
 				/* no need to order locks */
-  r = opgroup_disengage(unix_opgroup);
+  r = patchgroup_disengage(unix_patchgroup);
   assert(r >= 0);
 				/* try locking the easy way */
   if (dotlock_lock (file,lock,-1)) {
@@ -1200,7 +1200,7 @@ int unix_lock (char *file,int flags,int mode,DOTLOCK *lock,int op)
   }
   (*bn) (BLOCK_NONE,NIL);
 				/* no need to order locks */
-  r = opgroup_engage(unix_opgroup);
+  r = patchgroup_engage(unix_patchgroup);
   assert(r >= 0);
   return fd;
 }
@@ -1216,7 +1216,7 @@ void unix_unlock (int fd,MAILSTREAM *stream,DOTLOCK *lock)
 {
   int r;
 				/* no need to order locks */
-  r = opgroup_disengage(unix_opgroup);
+  r = patchgroup_disengage(unix_patchgroup);
   assert(r >= 0);
   if (stream) {			/* need to muck with times? */
     struct stat sbuf;
@@ -1250,7 +1250,7 @@ void unix_unlock (int fd,MAILSTREAM *stream,DOTLOCK *lock)
   if (!stream) close (fd);	/* close the file if no stream */
   dotlock_unlock (lock);	/* flush the lock file if any */
 				/* no need to order locks */
-  r = opgroup_engage(unix_opgroup);
+  r = patchgroup_engage(unix_patchgroup);
   assert(r >= 0);
 }
 
@@ -2012,7 +2012,7 @@ long unix_rewrite (MAILSTREAM *stream,unsigned long *nexp,DOTLOCK *lock)
     fs_give ((void **) &f.buf);	/* free buffer */
 				/* make sure tied off */
     ftruncate (LOCAL->fd,LOCAL->filesize = size);
-    int r = opgroup_sync(unix_opgroup); /* make sure the updates take */
+    int r = patchgroup_sync(unix_patchgroup); /* make sure the updates take */
     assert(r >= 0);
     if (size && (flag < 0)) fatal ("lost UID base information");
     LOCAL->dirty = NIL;		/* no longer dirty */

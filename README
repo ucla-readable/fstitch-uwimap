@@ -1,10 +1,10 @@
-			    KFS-enabled Additional Directions
+			    Featherstitch-enabled Additional Directions
 
 When running "make <target>" you must define the environment variables
-KUDOSINC and KUDOSLIB. To build using a kudos checkout at K these would
-be (in bash) KUDOSINC=K/kfs KUDOSLIB=K/obj/kernel/lib.
-To run imapd/imapd, libopgroup.so must be in your library path.
-For bash, LD_LIBRARY_PATH=K/obj/kernel/lib.
+FSTITCHINC and FSTITCHLIB. To build using a feathersttich checkout at F
+these would be (in bash) FSTITCHINC=F/fscore FSTITCHLIB=F/obj/kernel/lib.
+To run imapd/imapd, libpatchgroup.so must be in your library path.
+For bash, LD_LIBRARY_PATH=F/obj/kernel/lib.
 
 			
 			   IMAP Toolkit Environment

@@ -48,10 +48,10 @@ C = ../c-client
 CCLIENTLIB = $C/c-client.a
 CC = `cat $C/CCTYPE`
 CFLAGS = -I$C `cat $C/CFLAGS` $(NSBD) $(ENBD) -DANOFILE=\"$(ANO)\" \
-	-I$(KUDOSINC) \
+	-I$(FSTITCHINC) \
 	-DALERTFILE=\"$(ALERT)\" -DNNTPFILE=\"$(NNTP)\" \
 	-DUSERALERTFILE=\"$(USERALERT)\" -DSHUTDOWNFILE=\"$(SHUTDOWN)\"
-LDFLAGS = $(CCLIENTLIB) `cat $C/LDFLAGS` -L$(KUDOSLIB) -lopgroup
+LDFLAGS = $(CCLIENTLIB) `cat $C/LDFLAGS` -L$(FSTITCHLIB) -lpatchgroup
 
 all:	imapd
 
